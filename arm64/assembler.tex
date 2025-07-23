@@ -2,8 +2,8 @@
 
 % Don't forget to undefine at the bottom
 % If you change these, update the xN/wN terminology list.
-\providecommand{\xbase}{\code{x21}\xspace}
-\providecommand{\xaddr}{\code{x18}\xspace}
+\providecommand{\xbase}{\code{x27}\xspace}
+\providecommand{\xaddr}{\code{x28}\xspace}
 \providecommand{\xret}{\code{x30}\xspace}
 \providecommand{\xsp}{\code{sp}\xspace}
 
@@ -107,12 +107,12 @@ Each instruction is defined using a table, with the LFI-Arm64 instruction of the
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
     LFI-Arm64 & Arm64 \\ \hline
-    \code{br xN}        & \makecell{\code{add x18, x21, wN, uxtw} \\ \code{br x18}} \\ \hline
+    \code{br xN}        & \makecell{\code{add x28, x27, wN, uxtw} \\ \code{br x28}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{blr xN}        & \makecell{\code{add x18, x21, wN, uxtw} \\ \code{blr x18}} \\ \hline
+    \code{blr xN}        & \makecell{\code{add x28, x27, wN, uxtw} \\ \code{blr x28}} \\ \hline
 \end{tabular}
 
 \specitem
@@ -122,115 +122,115 @@ Each instruction is defined using a table, with the LFI-Arm64 instruction of the
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{ret xN}        & \makecell{\code{add x18, x21, wN, uxtw} \\ \code{ret x18}} \\ \hline
+    \code{ret xN}        & \makecell{\code{add x28, x27, wN, uxtw} \\ \code{ret x28}} \\ \hline
 \end{tabular}
 
 \specsection{Register Accesses}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{ldr x30, [...]}        & \makecell{\code{ldr xT, [...]} \\ \code{add x30, x21, wT, uxtw}} \\ \hline
+    \code{ldr x30, [...]}        & \makecell{\code{ldr xT, [...]} \\ \code{add x30, x27, wT, uxtw}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{mov sp, xN}        & \makecell{\code{add sp, x21, xN, uxtw}} \\ \hline
+    \code{mov sp, xN}        & \makecell{\code{add sp, x27, xN, uxtw}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{add sp, sp, \{\#i,xM\}}        & \makecell{\code{add xT, sp, \{\#i,xM\}} \\ \code{add sp, x21, wT, uxtw}} \\ \hline
+    \code{add sp, sp, \{\#i,xM\}}        & \makecell{\code{add xT, sp, \{\#i,xM\}} \\ \code{add sp, x27, wT, uxtw}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{sub sp, sp, \{\#i,xM\}}        & \makecell{\code{sub xT, sp, \{\#i,xM\}} \\ \code{add sp, x21, wT, uxtw}} \\ \hline
+    \code{sub sp, sp, \{\#i,xM\}}        & \makecell{\code{sub xT, sp, \{\#i,xM\}} \\ \code{add sp, x27, wT, uxtw}} \\ \hline
 \end{tabular}
 
 \specsection{Memory Accesses}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{\{ld,st\}r \ldots, [xM]} & \makecell{\code{\{ld,st\}r \ldots, [x21, wM, uxtw]}} \\ \hline
+    \code{\{ld,st\}r \ldots, [xM]} & \makecell{\code{\{ld,st\}r \ldots, [x27, wM, uxtw]}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{\{ld,st\}r \ldots, [xM, \#i]} & \makecell{\code{add xT, xM, \#i} \\ \code{\{ld,st\}r \ldots, [x21, wT, uxtw]}} \\ \hline
+    \code{\{ld,st\}r \ldots, [xM, \#i]} & \makecell{\code{add xT, xM, \#i} \\ \code{\{ld,st\}r \ldots, [x27, wT, uxtw]}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{\{ld,st\}r \ldots, [xM, \#i]!} & \makecell{\code{add xM, xM, \#i} \\ \code{\{ld,st\}r \ldots, [x21, wM, uxtw]}} \\ \hline
+    \code{\{ld,st\}r \ldots, [xM, \#i]!} & \makecell{\code{add xM, xM, \#i} \\ \code{\{ld,st\}r \ldots, [x27, wM, uxtw]}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{\{ld,st\}r \ldots, [xM], \#i} & \makecell{\code{\{ld,st\}r \ldots, [x21, wM, uxtw]} \\ \code{add xM, xM, \#i}} \\ \hline
+    \code{\{ld,st\}r \ldots, [xM], \#i} & \makecell{\code{\{ld,st\}r \ldots, [x27, wM, uxtw]} \\ \code{add xM, xM, \#i}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{\{ld,st\}r \ldots, [xM1, xM2]} & \makecell{\code{add xT, xM1, xM2} \\ \code{\{ld,st\}r \ldots, [x21, wT, uxtw]}} \\ \hline
+    \code{\{ld,st\}r \ldots, [xM1, xM2]} & \makecell{\code{add xT, xM1, xM2} \\ \code{\{ld,st\}r \ldots, [x27, wT, uxtw]}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{\{ld,st\}r \ldots, [xM1, xM2, mod \#i]} & \makecell{\code{add xT, xM1, xM2, mod \#i} \\ \code{\{ld,st\}r \ldots, [x21, wT, uxtw]}} \\ \hline
+    \code{\{ld,st\}r \ldots, [xM1, xM2, mod \#i]} & \makecell{\code{add xT, xM1, xM2, mod \#i} \\ \code{\{ld,st\}r \ldots, [x27, wT, uxtw]}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{\{ld,st\}X \ldots, [xM, \#i]} & \makecell{\code{add x18, x21, wM, uxtw} \\ \code{\{ld,st\}X \ldots, [x18, \#i]}} \\ \hline
+    \code{\{ld,st\}X \ldots, [xM, \#i]} & \makecell{\code{add x28, x27, wM, uxtw} \\ \code{\{ld,st\}X \ldots, [x28, \#i]}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{\{ld,st\}X \ldots, [xM, \#i]!} & \makecell{\code{add x18, x21, wM, uxtw} \\ \code{\{ld,st\}X \ldots, [x18]} \\ \code{add xM, xM, \#i}} \\ \hline
+    \code{\{ld,st\}X \ldots, [xM, \#i]!} & \makecell{\code{add x28, x27, wM, uxtw} \\ \code{\{ld,st\}X \ldots, [x28]} \\ \code{add xM, xM, \#i}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{\{ld,st\}X \ldots, [xM], \#i} & \makecell{\code{add x18, x21, wM, uxtw} \\ \code{\{ld,st\}X \ldots, [x18, \#i]} \\ \code{add xM, xM, \#i}} \\ \hline
+    \code{\{ld,st\}X \ldots, [xM], \#i} & \makecell{\code{add x28, x27, wM, uxtw} \\ \code{\{ld,st\}X \ldots, [x28, \#i]} \\ \code{add xM, xM, \#i}} \\ \hline
 \end{tabular}
 
 \specitem
 \begin{tabular}{@{}p{7cm}p{7cm}@{}}\hline
-    \code{\{ld,st\}X \ldots, [xM1], xM2} & \makecell{\code{add x18, x21, wM1, uxtw} \\ \code{\{ld,st\}X \ldots, [x18, \#i]} \\ \code{add xM1, xM1, xM2}} \\ \hline
+    \code{\{ld,st\}X \ldots, [xM1], xM2} & \makecell{\code{add x28, x27, wM1, uxtw} \\ \code{\{ld,st\}X \ldots, [x28, \#i]} \\ \code{add xM1, xM1, xM2}} \\ \hline
 \end{tabular}
 
 \specsection{Thread-local Storage Accesses}
 
 \specitem
  \begin{tabular}{@{}p{7cm}p{7cm}@{}} \hline
-    \code{mrs x0, tpidr\_el0} & \makecell{\code{mov wT, w30} \\ \code{ldr x30, [x21, \#8]} \\ \code{blr x30} \\ \code{add x30, x21, wT, uxtw}} \\ \hline
+    \code{mrs x0, tpidr\_el0} & \makecell{\code{mov wT, w30} \\ \code{ldr x30, [x27, \#8]} \\ \code{blr x30} \\ \code{add x30, x27, wT, uxtw}} \\ \hline
 \end{tabular} 
 
 \specitem
  \begin{tabular}{@{}p{7cm}p{7cm}@{}} \hline
-    \code{mrs xN, tpidr\_el0} & \makecell{\code{mov wT1, w30} \\ \code{mov xT2, x0} \\ \code{ldr x30, [x21, \#8]} \\ \code{blr x30} \\ \code{mov xN, x0} \\  \code{mov x0, xT2} \\ \code{add x30, x21, wT1, uxtw}} \\ \hline
+    \code{mrs xN, tpidr\_el0} & \makecell{\code{mov wT1, w30} \\ \code{mov xT2, x0} \\ \code{ldr x30, [x27, \#8]} \\ \code{blr x30} \\ \code{mov xN, x0} \\  \code{mov x0, xT2} \\ \code{add x30, x27, wT1, uxtw}} \\ \hline
 \end{tabular} 
 
 \informative{Attempts to read from \code{tpidr\_el0} are translated into calls to rtcall 1}.
 
 \specitem
  \begin{tabular}{@{}p{7cm}p{7cm}@{}} \hline
-    \code{mrs tpidr\_el0, x0} & \makecell{\code{mov wT1, w30} \\ \code{ldr x30, [x21, \#16]} \\ \code{blr x30} \\ \code{add x30, x21, wT1, uxtw}} \\ \hline
+    \code{mrs tpidr\_el0, x0} & \makecell{\code{mov wT1, w30} \\ \code{ldr x30, [x27, \#16]} \\ \code{blr x30} \\ \code{add x30, x27, wT1, uxtw}} \\ \hline
 \end{tabular} 
 
 \specitem
  \begin{tabular}{@{}p{7cm}p{7cm}@{}} \hline
-    \code{msr tpidr\_el0, xN} & \makecell{\code{mov wT1, w30} \\ \code{mov xT2, x0} \\ \code{mov x0, xN} \\ \code{ldr x30, [x21, \#16]} \\ \code{blr x30} \\  \code{mov x0, xT2} \\ \code{add x30, x21, wT1, uxtw}} \\ \hline
+    \code{msr tpidr\_el0, xN} & \makecell{\code{mov wT1, w30} \\ \code{mov xT2, x0} \\ \code{mov x0, xN} \\ \code{ldr x30, [x27, \#16]} \\ \code{blr x30} \\  \code{mov x0, xT2} \\ \code{add x30, x27, wT1, uxtw}} \\ \hline
 \end{tabular} 
 
-% TODO: it might make sense to reserve rtcall 0 so that it could be used for direct entry (blr x21).
+% TODO: it might make sense to reserve rtcall 0 so that it could be used for direct entry (blr x27).
 \informative{Attempts to write \code{tpidr\_el0} are translated into calls to rtcall 2}.
 
 \specsection{System Instructions}
 
 \specitem
  \begin{tabular}{@{}p{7cm}p{7cm}@{}} \hline
-    \code{svc \#0} & \makecell{\code{mov wT, w30} \\ \code{ldr x30, [x21]} \\ \code{blr x30} \\ \code{add x30, x21, wT, uxtw}} \\ \hline
+    \code{svc \#0} & \makecell{\code{mov wT, w30} \\ \code{ldr x30, [x27]} \\ \code{blr x30} \\ \code{add x30, x27, wT, uxtw}} \\ \hline
 \end{tabular} 
 
 \informative{Attempts to execute a system call are translated into calls to rtcall 0}.
