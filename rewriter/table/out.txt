@@ -1,0 +1,254 @@
+Compiler Requirements
++++++++++++++++++++++
+
+Reserved Registers
+==================
+
+* `x27`: always holds the sandbox base address.
+* `x28`: always holds an address within the sandbox.
+* `sp`: always holds an address within the sandbox.
+* `x30`: always holds an address within the sandbox.
+* `x26`: scratch register.
+
+Assembly Rewrites
+=================
+
+Control flow
+~~~~~~~~~~~~
+
++--------------------+---------------------------+
+|       NATIVE       |            LFI            |
++--------------------+---------------------------+
+| .. code-block::    | .. code-block::           |
+|                    |                           |
+|    {br,blr,ret} xN |    add x28, x27, wN, uxtw |
+|                    |    {br,blr,ret} x28       |
+|                    |                           |
++--------------------+---------------------------+
+| .. code-block::    | .. code-block::           |
+|                    |                           |
+|    ret             |    ret                    |
+|                    |                           |
++--------------------+---------------------------+
+
+Memory accesses
+~~~~~~~~~~~~~~~
+
++---------------------------------+-------------------------------+
+|             NATIVE              |              LFI              |
++---------------------------------+-------------------------------+
+| .. code-block::                 | .. code-block::               |
+|                                 |                               |
+|    LDSTr xN, [xM]               |    LDSTr xN, [x27, wM, uxtw]  |
+|                                 |                               |
++---------------------------------+-------------------------------+
+| .. code-block::                 | .. code-block::               |
+|                                 |                               |
+|    LDSTr xN, [xM, #I]           |    add x28, x27, wM, uxtw     |
+|                                 |    LDSTr xN, [x28, #I]        |
+|                                 |                               |
++---------------------------------+-------------------------------+
+| .. code-block::                 | .. code-block::               |
+|                                 |                               |
+|    LDSTr xN, [xM, #I]!          |    add xM, xM, #I             |
+|                                 |    LDSTr xN, [x27, wM, uxtw]  |
+|                                 |                               |
++---------------------------------+-------------------------------+
+| .. code-block::                 | .. code-block::               |
+|                                 |                               |
+|    LDSTr xN, [xM], #I           |    LDSTr xN, [x27, wM, uxtw]  |
+|                                 |    add xM, xM, #I             |
+|                                 |                               |
++---------------------------------+-------------------------------+
+| .. code-block::                 | .. code-block::               |
+|                                 |                               |
+|    LDSTr xN, [xM1, xM2]         |    add x26, xM1, xM2          |
+|                                 |    LDSTr xN, [x27, w26, uxtw] |
+|                                 |                               |
++---------------------------------+-------------------------------+
+| .. code-block::                 | .. code-block::               |
+|                                 |                               |
+|    LDSTr xN, [xM1, xM2, MOD #I] |    add x26, xM1, xM2, MOD #I  |
+|                                 |    LDSTr xN, [x27, w26, uxtw] |
+|                                 |                               |
++---------------------------------+-------------------------------+
+| .. code-block::                 | .. code-block::               |
+|                                 |                               |
+|    LDSTx ..., [xM]              |    add x28, x27, wM, uxtw     |
+|                                 |    LDSTx ..., [x28]           |
+|                                 |                               |
++---------------------------------+-------------------------------+
+| .. code-block::                 | .. code-block::               |
+|                                 |                               |
+|    LDSTx ..., [xM, #I]          |    add x28, x27, wM, uxtw     |
+|                                 |    LDSTx ..., [x28, #I]       |
+|                                 |                               |
++---------------------------------+-------------------------------+
+| .. code-block::                 | .. code-block::               |
+|                                 |                               |
+|    LDSTx ..., [xM, #I]!         |    add x28, x27, wM, uxtw     |
+|                                 |    LDSTx ..., [x28, #I]       |
+|                                 |    add xM, xM, #I             |
+|                                 |                               |
++---------------------------------+-------------------------------+
+| .. code-block::                 | .. code-block::               |
+|                                 |                               |
+|    LDSTx ..., [xM], #I          |    add x28, x27, wM, uxtw     |
+|                                 |    LDSTx ..., [x28]           |
+|                                 |    add xM, xM, #I             |
+|                                 |                               |
++---------------------------------+-------------------------------+
+| .. code-block::                 | .. code-block::               |
+|                                 |                               |
+|    LDSTx ..., [xM1], xM2        |    add x28, x27, wM1, uxtw    |
+|                                 |    LDSTx ..., [x28]           |
+|                                 |    add xM1, xM1, xM2          |
+|                                 |                               |
++---------------------------------+-------------------------------+
+
+Stack modification
+~~~~~~~~~~~~~~~~~~
+
++------------------------------+--------------------------------+
+|            NATIVE            |              LFI               |
++------------------------------+--------------------------------+
+| .. code-block::              | .. code-block::                |
+|                              |                                |
+|    mov sp, xN                |    add sp, x27, wN, uxtw       |
+|                              |                                |
++------------------------------+--------------------------------+
+| .. code-block::              | .. code-block::                |
+|                              |                                |
+|    {add,sub} sp, sp, {#I,xN} |    {add,sub} x26, sp, {#I, xN} |
+|                              |    add sp, x27, w26, uxtw      |
+|                              |                                |
++------------------------------+--------------------------------+
+
+Return address modification
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++-----------------------+----------------------------+
+|        NATIVE         |            LFI             |
++-----------------------+----------------------------+
+| .. code-block::       | .. code-block::            |
+|                       |                            |
+|    ldr x30, [...]     |    ldr x26, [...]          |
+|                       |    add x30, x27, w26, uxtw |
+|                       |                            |
++-----------------------+----------------------------+
+| .. code-block::       | .. code-block::            |
+|                       |                            |
+|    ldp xN, x30, [...] |    ldp xN, x26, [...]      |
+|                       |    add x30, x27, w26, uxtw |
+|                       |                            |
++-----------------------+----------------------------+
+| .. code-block::       | .. code-block::            |
+|                       |                            |
+|    ldp x30, xN, [...] |    ldp x26, xN, [...]      |
+|                       |    add x30, x27, w26, uxtw |
+|                       |                            |
++-----------------------+----------------------------+
+
+System instructions
+~~~~~~~~~~~~~~~~~~~
+
++-----------------+----------------------------+
+|     NATIVE      |            LFI             |
++-----------------+----------------------------+
+| .. code-block:: | .. code-block::            |
+|                 |                            |
+|    svc #0       |    mov w26, w30            |
+|                 |    ldr x30, [x27]          |
+|                 |    blr x30                 |
+|                 |    add x30, x27, w26, uxtw |
+|                 |                            |
++-----------------+----------------------------+
+
+Thread-local storage
+~~~~~~~~~~~~~~~~~~~~
+
++----------------------+----------------------------+
+|        NATIVE        |            LFI             |
++----------------------+----------------------------+
+| .. code-block::      | .. code-block::            |
+|                      |                            |
+|    mrs x0, tpidr_el0 |    mov w26, w30            |
+|                      |    ldr x30, [x27, #8]      |
+|                      |    blr x30                 |
+|                      |    add x30, x27, w26, uxtw |
+|                      |                            |
++----------------------+----------------------------+
+| .. code-block::      | .. code-block::            |
+|                      |                            |
+|    mrs xN, tpidr_el0 |    mov xN, x0              |
+|                      |    mov w26, w30            |
+|                      |    ldr x30, [x27, #8]      |
+|                      |    blr x30                 |
+|                      |    eor x0, x0, xN          |
+|                      |    eor xN, x0, xN          |
+|                      |    eor x0, x0, xN          |
+|                      |    add x30, x27, w26, uxtw |
+|                      |                            |
++----------------------+----------------------------+
+| .. code-block::      | .. code-block::            |
+|                      |                            |
+|    msr tpidr_el0, x0 |    mov w26, w30            |
+|                      |    ldr x30, [x27, #16]     |
+|                      |    blr x30                 |
+|                      |    add x30, x27, w26, uxtw |
+|                      |                            |
++----------------------+----------------------------+
+| .. code-block::      | .. code-block::            |
+|                      |                            |
+|    msr tpidr_el0, xN |    mov w26, w30            |
+|                      |    eor x0, x0, xN          |
+|                      |    eor xN, x0, xN          |
+|                      |    eor x0, x0, xN          |
+|                      |    ldr x30, [x27, #16]     |
+|                      |    blr x30                 |
+|                      |    eor x0, x0, xN          |
+|                      |    eor xN, x0, xN          |
+|                      |    eor x0, x0, xN          |
+|                      |    add x30, x27, w26, uxtw |
+|                      |                            |
++----------------------+----------------------------+
+
+<details>
+<summary>with `+lfi-tls-reg`</summary>
+
+This option is experimental.
+
++----------------------+-----------------+
+|        NATIVE        |       LFI       |
++----------------------+-----------------+
+| .. code-block::      | .. code-block:: |
+|                      |                 |
+|    mrs xN, tpidr_el0 |    mov xN, x25  |
+|                      |                 |
++----------------------+-----------------+
+| .. code-block::      | .. code-block:: |
+|                      |                 |
+|    mrs tpidr_el0, xN |    mov x25, xN  |
+|                      |                 |
++----------------------+-----------------+
+
+</details>
+
+Optimizations
+=============
+
+Basic guard elimination
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Stack guard elimination
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Guard hoisting
+~~~~~~~~~~~~~~
+
+Runtime Requirements
+++++++++++++++++++++
+
+Verification Requirements
++++++++++++++++++++++++++
+

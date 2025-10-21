@@ -1,0 +1,254 @@
+Compiler Requirements
++++++++++++++++++++++
+
+When building for the ``x86_64_lfi`` target, the compiler must restrict use of
+the instruction set to a subset of instructions, which are known to be safe
+from a sandboxing perspective. To do this, we apply a set of simple rewrites at
+the assembly language level to transform standard native x86-64 assembly into
+LFI-compatible x86-64 assembly.
+
+These rewrites (also called "expansions") are applied at the very end of the
+LLVM compilation pipeline (during the assembler step). This allows the rewrites
+to be applied to hand-written assembly, including inline assembly.
+
+Compiler Options
+================
+
+The LFI target has several configuration options.
+
+* ``+lfi-stores``: create a "stores-only" sandbox, where rewrites are not applied to loads.
+* ``+lfi-jumps``: create a "jumps-only" sandbox, where rewrites are not applied to loads/stores.
+* ``+lfi-tls-reg``: use an additional reserved register for thread-local storage accesses.
+
+Reserved Registers
+==================
+
+The LFI target uses a custom ABI that reserves additional registers for the
+platform. The registers are listed below, along with the security invariant
+that must be maintained.
+
+* ``%r14``: always holds the sandbox base address.
+* ``%gs``: always holds the sandbox base address.
+* ``%rsp``: always holds an address within the sandbox.
+* ``%r11``: scratch register.
+
+Assembly Rewrites
+=================
+
+Terminology
+~~~~~~~~~~~
+
+In the following assembly rewrites, some shorthand is used.
+
+* ``%rN`` or ``%eN``: refers to any general-purpose non-reserved register.
+* ``{a,b,c}``: matches any of ``a``, ``b``, or ``c``.
+
+Instructions placed between ``.bundle_lock`` and ``.bundle_unlock`` directives
+must all be placed inside the same bundle. The directive ``.bundle_lock
+align_to_end`` ensures that the last instruction in the ``.bundle_lock``
+sequence is placed at the end of the bundle.
+
+Control flow
+~~~~~~~~~~~~
+
+Indirect jumps are rewritten to first apply a mask that zeroes the top 32 bits
+and bottom 5 bits of the target. An ``addq`` instruction is then used to fill
+in the top 32 bits with the sandbox base.
+
+Indirect calls are similar, but the call instruction must be placed at the
+end of the bundle so that the return address is bundle-aligned. Direct calls
+must also be placed at the end of a bundle.
+
+The addressing mode ``LFI:N(...)`` specifies to apply an LFI addressing mode
+transformation (see next section) when rewriting the addressing mode.
+
+------
+jmpq *%rX
+>>>
+.bundle_lock
+andl $0xffffffe0, %eX
+addq %r14, %rX
+jmpq *%rX
+.bundle_unlock
+---
+jmpq *N(...)
+>>>
+movq LFI:N(...), %r11
+.bundle_lock
+andl $0xffffffe0, %r11d
+addq %r14, %r11
+jmpq *%r11
+.bundle_unlock
+---
+callq *%rX
+>>>
+.bundle_lock align_to_end
+andl $0xffffffe0, %eX
+addq %r14, %r11
+callq *%r11
+.bundle_unlock
+---
+callq *N(...)
+>>>
+movq LFI:N(...), %r11
+.bundle_lock align_to_end
+andl $0xffffffe0, %r11d
+addq %r14, %r11
+callq *%r11
+.bundle_unlock
+---
+ret
+>>>
+popq %r11
+.bundle_lock
+andl $0xffffffe0, %r11d
+addq %r14, %r11
+jmpq *%r11
+.bundle_unlock
+---
+call ...
+>>>
+.bundle_lock align_to_end
+call ...
+.bundle_unlock
+------
+
+
+Memory accesses
+~~~~~~~~~~~~~~~
+
+Memory accesses are transformed to safe versions by rewriting the addressing
+mode. The rewrite prefixes the addressing mode with ``%gs:`` to make the access
+relative to the sandbox base. All registers must be changed to the 32-bit form
+(``%eX``).
+
+The stack ``%rsp`` may be accessed directly because it is always guaranteed to
+contain a valid sandbox address. ``lea`` instructions do not need rewriting for
+their addressing mode since they do not actually perform a memory access.
+
+------
+lea N(...), ...
+>>>
+lea N(...), ...
+------
+
+------
+N(%rsp)
+>>>
+N(%rsp)
+---
+N(%rip)
+>>>
+N(%rip)
+---
+N(%rX)
+>>>
+%gs:N(%eX)
+---
+N(%rX, %rY, S)
+>>>
+%gs:N(%eX, %eY, S)
+---
+N(, %rX, S)
+>>>
+N(, %eX, S)
+------
+
+String instructions
+~~~~~~~~~~~~~~~~~~
+
+String instructions perform memory accesses using specific registers. Those
+registers must be manually guarded before the instruction.
+
+------
+rep? stosq
+>>>
+.bundle_lock
+movl %edi, %edi
+leaq (%r14, %rdi), %rdi
+rep? stosq
+.bundle_unlock
+---
+rep? movsq
+>>>
+.bundle_lock
+movl %edi, %edi
+leaq (%r14, %rdi), %rdi
+movl %esi, %esi
+leaq (%r14, %rsi), %rsi
+rep? movsq
+.bundle_unlock
+------
+
+Stack modification
+~~~~~~~~~~~~~~~~~~
+
+Since the stack pointer must always contain a valid sandbox address, any
+modification to the stack pointer must be rewritten to modify it via ``%esp``
+and then re-guard it with ``leaq (%rsp, %r14), %rsp``. We use this guard form
+instead of ``addq %r14, %rsp`` to avoid modifying the flags.
+
+------
+MOD ..., %rsp
+>>>
+.bundle_lock
+MOD ..., %esp
+leaq (%rsp, %r14), %rsp
+.bundle_unlock
+------
+
+System instructions
+~~~~~~~~~~~~~~~~~~~
+
+A system call is rewritten into an indirect branch to the first entry in the
+runtime call entrypoint table. The `%r11` register stores the return address.
+
+  The location of the runtime call entrypoint table is the first page of the
+  sandbox. For the final version of LFI merged into LLVM we intend to move this
+  location to the page before the first page of the sandbox, with entrypoints
+  starting at the largest addresses in that page. As a result, x86-64 system
+  calls will use ``-8(%r14)`` instead of ``0(%r14)``.
+
+------
+syscall
+>>>
+.bundle_lock
+leaq .sysret(%rip), %r11
+jmpq *0(%r14)
+.sysret:
+.bundle_unlock
+------
+
+Thread-local storage
+~~~~~~~~~~~~~~~~~~~~
+
+TLS accesses are rewritten into runtime calls to the second entry in the
+runtime call entrypoint table. ``%rax`` will contain the return value, so it
+must be swapped when targeting another register.
+
+We assume that all assembly uses ``%fs:0`` to access the thread pointer (never
+``%fs:N`` or ``%fs:(...)``). This is enforced by compiling with
+``-mno-tls-direct-seg-refs``.
+
+  More complicated rewrite sequences can be used to support non-``%fs:0``
+  accesses.
+
+------
+movq %fs:0, %rax
+>>>
+.bundle_lock
+leaq 1f(%rip), %r11
+jmpq *8(%r14)
+1:
+.bundle_unlock
+---
+movq %fs:0, %rX
+>>>
+movq %rax, %rX
+.bundle_lock
+leaq 1f(%rip), %r11
+jmpq *8(%r14)
+1:
+.bundle_unlock
+xchgq %rax, %rX
+------
